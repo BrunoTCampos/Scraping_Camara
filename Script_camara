@@ -1,0 +1,68 @@
+#Scraping Câmara
+#deputados_1_ - a planilha com todos os deputados da Câmara da História, disponível no API
+
+deputados_1_$id <- substr(deputados_1_$uri, start = 53, stop = 60) #extrair da coluna url o código do senador ao final do link
+
+deputados_df <- deputados_1_ %>%
+  filter(idLegislaturaInicial <= 57 & idLegislaturaFinal >= 51) #filtrar apenas os deputados do nosso recorte temporal
+
+for(i in 1:nrow(deputados_df)){ #nrow = da primeira linha até a ultima linha 
+  print(deputados_df$id[i]) # o print serve para que possamos ver em qual id ele ta enquanto o codigo roda
+  endpoint2 <- paste0("https://dadosabertos.camara.leg.br/api/v2/deputados/",deputados_df$id[i],"/discursos?idLegislatura=52&ordenarPor=dataHoraInicio&ordem=ASC")
+  # o paste0 é uma funcao que permite modificar o link em cada rodada do loop, extraindo os discs por legislatura
+  print(endpoint2) #mostra o link já alterado com o numero id de cada parlamentar enquanto o codigo roda
+  respdisc <- GET(url = endpoint2) # criou uma variavel para receber os discursos dos links
+  respdisc$content # parte especifica da variavel que tem as info. relevantes
+  textdisc <- rawToChar(respdisc$content) #está em formato binario?, ilegivel, é preciso converter p texto
+  jsondisc1 <- fromJSON(textdisc, flatten = TRUE) #é preciso converter p JSON, o flatten deixa 
+  #as informacoes do json flat, para ficar mais simples de ler
+  jsondisc1$dados #parte especifica onde tem as info. relevantes
+  tabdiscs <- jsondisc1$dados #criamos a variavel para armazenar os discursos dos parlamentares
+  
+  tabdiscs["id"] = deputados_df$id[i] # criou uma coluna, dentro da variavel tabdiscs, com os ids
+  if(!is.null(nrow(tabdiscs))){ #se o id tiver discursos, o for puxa
+    if(i == 1){ # na 1a rodada do loop, puxa os discursos do 1o deputado do tabdiscs pro df, onde
+      #ficarao todos os discursos e ids
+      df <- tabdiscs
+    }
+    else{
+      df <- rbind(df, tabdiscs) #nas demais rodadas, juntar pela linha, o df e o tabdiscs
+    }
+  }
+}
+
+#não consegui fazer o loop para pegar tudo de uma vez, então fui fazendo o scraping de cada uma, trocando no paste0, e salvando o df
+
+write.xlsx(df, "df53") #fiz um para cada legislatura 
+#troquei no paste0 para a próxima até 57
+
+df_camara <- rbind(df51, df52, df53, df54, df55, df56, df57)
+
+
+--------------------------------------------------------------------------------------------------------
+
+#1) Contabilizar a frequência de citação de todos os países do mundo, e vizualizar Israel e Palestina
+
+paises <- c("Abecásia",	"Açores",	"Acrotiri e Deceleia",	"Afeganistão",	"África do Sul",	"Albânia",	"Alemanha",	"Andorra",	"Angola",	"Anguila",	"Antártida",	"Antígua e Barbuda",	"Arábia Saudita",	"Argélia",	"Argentina",	"Armênia",	"Aruba",	"Austrália",	"Áustria",	"Azerbaijão",	"Bahamas",	"Bangladesh",	"Barbados",	"Barém",	"Bélgica",	"Belize",	"Benim",	"Bermudas",	"Bielorrússia",	"Bolívia",	"Bonaire",	"Bósnia e Herzegovina",	"Botsuana",	"Brasil",	"Brunei",	"Bulgária",	"Burquina Faso",	"Burundi",	"Butão",	"Cabo Verde",	"Camarões",	"Camboja",	"Canadá",	"Canárias",	"Catar",	"Cazaquistão",	"Chade",	"Chile",	"China",	"Chipre",	"Chipre do Norte",	"Colômbia",	"Comores",	"Coreia do Norte",	"Coreia do Sul",	"Costa do Marfim",	"Costa Rica",	"Croácia",	"Cuba",	"Curaçao",	"Dinamarca",	"Djibuti",	"Domínica",	"Egito",	"El Salvador",	"Emirados Árabes Unidos",	"Equador",	"Eritreia",	"Escócia",	"Eslováquia",	"Eslovênia",	"Espanha",	"Estados Unidos",	"Estônia",	"Etiópia",	"Faroé",	"Fiji",	"Filipinas",	"Finlândia",	"França",	"Gabão",	"Gâmbia",	"Gana",	"Geórgia",	"Geórgia do Sul e Sandwich do Sul",	"Gibraltar",	"Granada",	"Grécia",	"Groenlândia",	"Guadalupe",	"Guam",	"Guatemala",	"Guernsey",	"Guiana",	"Guiana Francesa",	"Guiné",	"Guiné Bissau",	"Guiné Equatorial",	"Haiti",	"Honduras",	"Hong Kong",	"Hungria",	"Iêmen",	"Ilha Bouvet",	"Ilha da Madeira",	"Ilha de Clipperton",	"Ilha de Man",	"Ilha de Navassa",	"Ilha do Natal",	"Ilha Jan Mayen",	"Ilha Norfolk",	"Ilha Wake",	"Ilhas Ashmore e Cartier",	"Ilhas Caimão",	"Ilhas Cocos",	"Ilhas Cook",	"Ilhas do mar de coral",	"Ilhas Falkland",	"Ilhas Heard e McDonald",	"Ilhas Marshall",	"Ilhas Paracel",	"Ilhas Pitcairn",	"Ilhas Salomão",	"Ilhas Spratly",	"Ilhas Turcas e Caicos",	"Ilhas Virgens Americanas",	"Ilhas Virgens Britânicas",	"Índia",	"Indonésia",	"Inglaterra",	"Irã",	"Iraque",	"Irlanda",	"Irlanda do norte",	"Islândia",	"Israel",	"Itália",	"Jamaica",	"Japão",	"Jersey",	"Jordânia",	"Kosovo",	"Kuwait",	"Laos",	"Lesoto",	"Letônia",	"Líbano",	"Libéria",	"Líbia",	"Liechtenstein",	"Lituânia",	"Luxemburgo",	"Macau",	"Macedônia do Norte",	"Madagascar",	"Malásia",	"Malawi",	"Maldivas",	"Mali",	"Malta",	"Marianas do Norte",	"Marrocos",	"Martinica",	"Maurício",	"Mauritânia",	"Mayotte",	"México",	"Micronésia",	"Moçambique",	"Moldávia",	"Mônaco",	"Mongólia",	"Monserrate",	"Montenegro",	"Myanmar",	"Nagorno-Karabakh",	"Namíbia",	"Nauru",	"Nepal",	"Nicarágua",	"Níger",	"Nigéria",	"Niue",	"Noruega",	"Nova Caledônia",	"Nova Zelândia",	"Omã",	"Ossétia do Sul",	"País de Gales",	"Países Baixos",	"Palau",	"Palestina",	"Panamá",	"Papua-Nova Guiné",	"Paquistão",	"Paraguai",	"Peru",	"Polinésia Francesa",	"Polônia",	"Porto Rico",	"Portugal",	"Quênia",	"Quirguizistão",	"Quiribati",	"Reino Unido",	"República Centro-Africana",	"República Democrática do Congo",	"República do Congo",	"República Dominicana",	"República Tcheca",	"Reunião",	"Romênia",	"Ruanda",	"Rússia",	"Saara Ocidental",	"Saba",	"Samoa",	"Samoa Americana",	"San Marino",	"Santa Helena",	"Santa Lúcia",	"Santo Eustáquio",	"São Bartolomeu",	"São Cristóvão e Neves",	"São Martinho francesa",	"São Martinho holandesa",	"São Pedro e Miquelon",	"São Tomé e Príncipe",	"São Vicente e Granadinas",	"Seicheles",	"Senegal",	"Serra Leoa",	"Sérvia",	"Singapura",	"Síria",	"Somália",	"Somalilândia",	"Sri Lanka",	"Suazilândia",	"Sudão",	"Sudão do Sul",	"Suécia",	"Suíça",	"Suriname",	"Tailândia",	"Taiwan",	"Tajiquistão",	"Tanzânia",	"Território Britânico do Oceano Índico",	"Territórios Austrais Franceses",	"Timor Leste",	"Togo",	"Tokelau",	"Tonga",	"Transnístria",	"Trindade e Tobago",	"Tunísia",	"Turquemenistão",	"Turquia",	"Tuvalu",	"Ucrânia",	"Uganda",	"Uruguai",	"Uzbequistão",	"Vanuatu",	"Vaticano",	"Venezuela",	"Vietnã",	"Wallis e Futuna",	"Zâmbia",	"Zanzibar",	"Zimbabué")
+
+# Criar as colunas para armazenar os resultados
+
+for (pais in paises) {
+  coluna <- paste0("freq_", gsub(" ", "_", pais))
+  df_camara[[coluna]] <- 0
+}
+
+# Criar um loop para procurar a citação em cada discurso na Coluna "TEXT"
+for (i in seq_along(paises)) {
+  # Criar a linha de comando para o país
+  coluna <- paste0("freq_", gsub(" ", "_", paises[i]))
+  df_camara[[coluna]] <- str_count(df_camara$transcricao, paste0("\\b", paises[i], "(?<!\\bMagno\\s)\\b"))
+  
+  # Armazenar o resultado 
+  freq_por_pais[i] <- sum(df_camara[[coluna]])
+}
+
+write.xlsx(dados_paises, "Citação todos os países")
+
+dados_paises <- data.frame(Pais = paises, Frequencia = freq_por_pais) # Criar um dataframe com os dados
+dados_paises <- dados_paises[order(dados_paises$Frequencia, decreasing = TRUE),]# Ordenar o dataframe por frequência
